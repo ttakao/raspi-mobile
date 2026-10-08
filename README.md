@@ -1,20 +1,32 @@
-# raspi-mobile：Zero 2 W 携帯SSH端末
+# raspi-mobile：Zero 2 W モバイル端末
 
-対象：Raspberry Pi Zero 2 W、Raspberry Pi OS Lite 32bit / Raspbian 13.6 (Trixie)、MHS-3.5inch SPI液晶（ILI9486、480×320）、Bluetoothキーボード。
+外や喫茶店から仮定においてあるパソコンに接続し、なにかをするということはガジェット好きにはたまらない遊びです。今まで数多くの機器が作られました。しかし、私はイマイチ意欲をそそられないのです。よくよく考えて次のような機器があればいいのにな、と思いました。
+
+- ディスプレイは必要。でもSSHで繋ぐと割り切ったら小さくてもいい。GUIならスマホでいい。
+
+- キーボードは折りたたみキーボードってなぜか、ガジェット市場にいっぱいある。Bluetoothでつながればいい。
+
+- スマホとwifiでテザリングできればいい。
+
+- でも、Linuxは絶対に必要。SSHしたいし、VPNのTailscaleとかがいる。
+
+- 容量の大きい電池駆動がいい。できれば18650電池がいい。なぜならば、余分にもってあるけば容量不足にならない。
+
+異常をふまえて、Raspberry Pi Zero 2 W、Raspberry Pi OS Lite 32bit / Raspbian 13.6 (Trixie)、MHS-3.5inch SPI液晶（ILI9486、480×320）、18650電池x2本、電池ボックス、DCDCコンバータ, 電源トグルスイッチ、Bluetoothキーボードで作ることにした。
 
 ## 確認できていることと今回の改善
 
-2026-10-08、実機で液晶表示・Bluetoothキーボードでのログイン・SSH接続を確認。20pxの `Lat15-Terminus20x10` が読みやすいというユーザー判断。
-HDMIなしでは `/proc/fb` に `1 fb_ili9486` だけが現れた。con2fbmapは内部で/dev/fb0を開くため失敗し、さらにframe buffer deviceのbindが0だった。bindを1にして表示は復旧した。
+2026-10-08、実機で液晶表示・Bluetoothキーボードでのログイン・SSH接続を確認。20pxの `Lat15-Terminus20x10` が読みやすいとしています。
+構築時にはHDMIディスプレイとUSBキーボードを繋いでいたけれども、HDMIなしで作れるようにしたつもり。
 
-今回保存したコードは、液晶の実デバイスを直接開いてLinuxのFBIOPUT_CON2FBMAPを実行する。/dev/fb0の仮のシンボリックリンクやcmdline.txtの変更は不要。サービスの実行順をconsole-setupの後にし、フォント上書きを避ける。
-
-**会話中に動いた手順と、ここで改善したコードは区別する。この一式はMacで構文・模擬デバイス・SD準備処理を検証済み。新しい直接ioctl方式、キーボード選択ツール、SD初期構築は実機で未検証。導入後はHDMIなしの再起動確認を行う。**
+****この一式はMacで構文・模擬デバイス・SD準備処理を検証済み。新しい直接ioctl方式、キーボード選択ツール、SD初期構築は実機で未検証。導入後はHDMIなしの再起動確認を行う。**
 
 ## 新しいmicroSDをHDMIなしで準備
 
+~/dev/raspi-mobileにすべてのパッケージがダウンロードされている前提です。
+
 1. Raspberry Pi ImagerでZero 2 W / Raspberry Pi OS Lite (32-bit)を選ぶ。
-2. ホスト名 `raspi-zero2`、ユーザー名、パスワード、Wi-Fi（2.4GHz）、国JP、タイムゾーンAsia/Tokyo、SSHを設定して書き込む。
+2. ホスト名（任意）、ユーザー名、パスワード、Wi-Fi（2.4GHz）、国JP、タイムゾーンAsia/Tokyo、SSHを設定して書き込む。
 3. Imagerが取り外したカードをMacへ挿し直し、Finderでbootfsが見えることを確認。
 4. Macのターミナルで実行：
 
@@ -28,10 +40,10 @@ python3 ~/dev/raspi-mobile/scripts/prepare-sd.py /Volumes/bootfs
 6. Macから接続：
 
 ```sh
-ssh tsukasa@raspi-zero2.local
+ssh ユーザー名@ホスト目.local
 ```
 
-ユーザー名とホスト名はImagerで指定したものを使う。.localが使えなければルーターの接続端末一覧でIPを確認して `ssh tsukasa@IPアドレス`。
+コマンド内の「ユーザー名」「iホスト名」はImagerで指定した値に置き換える。「Wi-Fi AP名」は接続先のSSIDに置き換える。.localが使えなければルーターの接続端末一覧でIPを確認して `ssh ユーザー名@IPアドレス`。
 
 7. **PiのSSH画面で**実行（インターネット接続が必要）：
 
@@ -50,8 +62,8 @@ Macから見えるFATパーティションにはoverlayとconfig.txtを配置で
 Macで実行：
 
 ```sh
-scp -r ~/dev/raspi-mobile tsukasa@raspi-zero2.local:~/
-ssh tsukasa@raspi-zero2.local
+scp -r ~/dev/raspi-mobile ユーザー名@ホスト名.local:~/
+ssh ユーザー名@ホスト名.local
 ```
 
 Piで：
@@ -96,7 +108,7 @@ removeは指定した機器だけ登録解除する。ペアリングに失敗�
 ```sh
 nmcli device status
 nmcli device wifi list
-sudo nmcli --ask device wifi connect "SSID"
+sudo nmcli --ask device wifi connect "Wi-Fi AP名"
 ip -4 addr show wlan0
 ```
 
