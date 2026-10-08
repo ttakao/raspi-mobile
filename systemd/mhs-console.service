@@ -1,0 +1,13 @@
+[Unit]
+Description=MHS LCD console with Terminus 20px font
+After=systemd-vconsole-setup.service console-setup.service
+Before=getty@tty1.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/raspi-mobile/mhs-console.py
+RemainAfterExit=yes
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target
