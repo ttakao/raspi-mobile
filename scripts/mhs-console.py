@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Bind tty1 directly through the LCD device; fb0 need not exist."""
 import fcntl
+import errno
 import pathlib
 import struct
 import subprocess
@@ -24,7 +25,13 @@ def main():
                             struct.pack('=II', 1, int(fb.name[2:])))
             blank = fb / 'blank'
             if blank.exists():
-                blank.write_text('0\n')
+                try:
+                    blank.write_text('0\n')
+                except OSError as exc:
+                    # Some framebuffer drivers expose blank without supporting it.
+                    if exc.errno != errno.EINVAL:
+                        raise
+                    print(f'{fb.name}: blank control unsupported; continuing')
             subprocess.run(['chvt', '1'], check=True)
             subprocess.run(['setfont', '-C', '/dev/tty1', FONT], check=True)
             with open('/dev/tty1', 'wb', buffering=0) as tty:
